@@ -55,6 +55,10 @@ for index, detection in enumerate(detections):
         continue
 
     image_id, class_id, x1, y1, x2, y2 = detection.split(",")
+    x1 = float(x1)
+    y1 = float(y1)
+    x2 = float(x2)
+    y2 = float(y2)
 
     # image_tr_00001.jpg -> 00001
     image_name = image_id.split(".jpg", 1)[0]
@@ -67,10 +71,12 @@ for index, detection in enumerate(detections):
         continue
     class_index = class_map[class_id]
 
+    # coco format: [class_index] [x_center] [y_center] [width] [height]
     with open(os.path.join(COCO_LABEL_PATH, image_name + ".txt"), "a+") as f:
-        f.write(f"{class_index} {x1} {y1} {x2} {y2}\n")
+        f.write(f"{class_index} {(x1 + x2) / 2.0} {(y1 + y2)/ 2.0} {x2 - x1} {y2 - y1}\n")
     
     print(f"   {index + 1} / {len(detections)} detections processed\r", end="")
+print()
 
 # Create train, val, test sets
 print("Creating train, val, and test sets...")

@@ -63,7 +63,9 @@ with open(PATH_LABELS_CSV, "r") as f:
 	labels = [label.strip() for label in labels]
 
 labels = labels[1:]  # Delete the first row(header labels)
-print(f"Found {len(labels)} objects")
+print(f"Found {len(labels)} objects(including no detection)")
+
+stats = { 'all': 0, 'none': 0 }
 
 with open(os.path.join(PATH_OUTPUT, "labels.csv"), "a+") as f:
 	f.write(f"image,class_index,class_name,origin_image\n")
@@ -79,6 +81,7 @@ for index, label in enumerate(labels):
 		exit()
 	
 	if class_index == 0:  # No detection
+		stats['none'] += 1
 		continue
 	
 	if not os.path.exists(os.path.join(PATH_IMAGES, image_file_name)):
@@ -92,19 +95,29 @@ for index, label in enumerate(labels):
 	y1_abs, y2_abs = [int(img_h * rel) for rel in [y1_rel, y2_rel]]
 
 	obj_img = img[y1_abs:y2_abs, x1_abs:x2_abs].copy()
-	cv2.imwrite(os.path.join(PATH_OUTPUT, "images", "all", f"{index + 1:06}.jpg"), obj_img)
+	stats['all'] += 1
+	cv2.imwrite(os.path.join(PATH_OUTPUT, "images", "all", f"{stats['all']:06}.jpg"), obj_img)
 
 	class_folder_path = os.path.join(PATH_OUTPUT, "images", CLASS_NAMES[class_index])
 	if not os.path.exists(class_folder_path):
 		os.makedirs(class_folder_path)
 	
-	cv2.imwrite(os.path.join(class_folder_path, f"{index + 1:06}.jpg"), obj_img)
+	if CLASS_NAMES[class_index] not in stats.keys():
+		stats[CLASS_NAMES[class_index]] = 1
+	else:
+		stats[CLASS_NAMES[class_index]] += 1
+	
+	cv2.imwrite(os.path.join(class_folder_path, f"{stats['all']:06}.jpg"), obj_img)
 	
 	with open(os.path.join(PATH_OUTPUT, "labels.csv"), "a+") as f:
-		f.write(f"{index + 1:06}.jpg,{class_index},{CLASS_NAMES[class_index]},{image_file_name}\n")
+		f.write(f"{stats['all']:06}.jpg,{class_index},{CLASS_NAMES[class_index]},{image_file_name}\n")
 
 	print(f"                                                                                               \r", end="")
 	print(f"   Processed {index + 1} / {len(labels)} labels  (class: {CLASS_NAMES[class_index]})\r", end="")
+
+with open(os.path.join(PATH_OUTPUT, "stats.txt"), "w") as f:
+	for key, value in stats:
+		f.write(f"{key}: {value}\n")
 
 print()
 print("Done")
